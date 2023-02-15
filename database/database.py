@@ -8,6 +8,13 @@ class Database(ABC):
         
         self.read()
     
+    def __str__(self) -> str:
+        className = self.__class__.__name__
+        selfDict = self.__dict__
+        attributes =  ', '.join([f'{attr}={selfDict[attr]!r}' for attr in selfDict])
+        
+        return f'{className}({attributes})'
+    
     @abstractmethod
     def read(self): ...
 
@@ -24,5 +31,3 @@ class CSVDatabase(Database):
                 continue
         
             self.data.append(values)
-
-csv = CSVDatabase('./database.csv')
