@@ -1,10 +1,7 @@
 from pathlib import Path
-from database import CSVDatabase
+from database import CSV
 
 ROOT_DIR = Path(__file__).parent
 
-db = CSVDatabase(ROOT_DIR / 'credit.csv')
-
-# from print import print
-
+db = CSV(ROOT_DIR / 'credit.csv')
 print(db)
