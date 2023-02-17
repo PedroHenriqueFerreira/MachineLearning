@@ -15,9 +15,10 @@ class Database(ABC):
     def __str__(self) -> str:
         className = self.__class__.__name__
         selfDict = self.__dict__
-        attributes = ', \n'.join([f'\033[1m{attr}\033[0;0m={selfDict[attr]!r}' for attr in selfDict])
+        attr = [f'\033[1m{attr}\033[0;0m={selfDict[attr]!r}' for attr in selfDict]
+        formatedAttr = ', \n'.join(attr)
         
-        return f'{className}(\n{attributes}\n)'
+        return f'{className}(\n{formatedAttr}\n)'
     
     def setCategories(self) -> None:
         for line in self.data:
