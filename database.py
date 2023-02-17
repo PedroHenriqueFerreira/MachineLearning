@@ -8,9 +8,7 @@ class Database(ABC):
         self.categories: dict[str, list[str]] = {}
         self.parsedData: list[list[int]] = []
         
-        self.read()
-        self.setCategories()
-        self.setParsedData()
+        self.templateMethod()
     
     def __str__(self) -> str:
         className = self.__class__.__name__
@@ -19,6 +17,20 @@ class Database(ABC):
         formatedAttr = ', \n'.join(attr)
         
         return f'{className}(\n{formatedAttr}\n)'
+    
+    def templateMethod(self) -> None:
+        self.read()
+        self.checkErrors()
+        self.setCategories()
+        self.setParsedData()
+
+    def checkErrors(self) -> None:
+        if len(self.header) == 0:
+            raise Exception('Header is empty')
+        
+        for line in self.data:
+            if len(line) != len(self.header):
+                raise Exception('Data is invalid')
     
     def setCategories(self) -> None:
         for line in self.data:
@@ -34,12 +46,6 @@ class Database(ABC):
         
         for lineIndex, line in enumerate(self.data):
             for i, item in enumerate(line):
-                if self.header[i] not in self.categories:
-                    raise Exception(f'Header {self.header[i]} not found in categories')
-                
-                if (item not in self.categories[self.header[i]]):
-                    raise Exception(f'Item {item} not found in categories')
-                
                 numberValue = self.categories[self.header[i]].index(item)
                 
                 parsedData[lineIndex][i] = numberValue
