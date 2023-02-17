@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 class Database(ABC):
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         self.path: str = path
         self.header: list[str] = []
         self.data: list[list[str]] = []
@@ -15,11 +15,11 @@ class Database(ABC):
     def __str__(self) -> str:
         className = self.__class__.__name__
         selfDict = self.__dict__
-        attributes =  ', '.join([f'{attr}={selfDict[attr]!r}' for attr in selfDict])
+        attributes = ', \n'.join([f'\033[1m{attr}\033[0;0m={selfDict[attr]!r}' for attr in selfDict])
         
-        return f'{className}({attributes})'
+        return f'{className}(\n{attributes}\n)'
     
-    def setCategories(self):
+    def setCategories(self) -> None:
         for line in self.data:
             for i, item in enumerate(line):
                 if self.header[i] not in self.categories:
@@ -28,8 +28,8 @@ class Database(ABC):
                 if item not in self.categories[self.header[i]]:
                     self.categories[self.header[i]].append(item)
     
-    def setParsedData(self):
-        newData: list[list[int]] = [line[:] for line in self.data]
+    def setParsedData(self) -> None:
+        parsedData: list[list[int]] = [line[:] for line in self.data]
         
         for lineIndex, line in enumerate(self.data):
             for i, item in enumerate(line):
@@ -41,11 +41,9 @@ class Database(ABC):
                 
                 numberValue = self.categories[self.header[i]].index(item)
                 
-                newData[lineIndex][i] = numberValue
+                parsedData[lineIndex][i] = numberValue
                 
-        print(self.categories)
-        print(newData)
-        print(self.data)
+        self.parsedData = parsedData
         
     @abstractmethod
     def read(self): ...
@@ -63,6 +61,3 @@ class CSVDatabase(Database):
                 continue
         
             self.data.append(values)
-     
-       
-CSVDatabase('./credit.csv')
