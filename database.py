@@ -4,7 +4,7 @@ from parse import parseIfNumber, parseToNumber
 
 class Database(ABC):
     def __init__(self, path: str | Path) -> None:
-        self.path: str | Path = path
+        self.path = path
 
         self.headers: list[str] = []
         self.categories: dict[str, list[str]] = {}
@@ -13,6 +13,9 @@ class Database(ABC):
         self.parsedData: list[list[int | float]] = []
 
         self.templateMethod()
+
+    def __len__(self) -> int:
+        return len(self.data)
 
     def __str__(self) -> str:
         className = self.__class__.__name__
