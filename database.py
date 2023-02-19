@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from utils import parseIfNumber
-
+from utils import parseIfNumber, parseToNumber
 
 class Database(ABC):
     def __init__(self, path: str | Path) -> None:
@@ -28,8 +27,8 @@ class Database(ABC):
         self.read()
         self.checkErrors()
 
-        self.transformCategories()
-        # self.parseData()
+        self.setCategories()
+        self.parseData()
 
     def checkErrors(self) -> None:
         if len(self.headers) == 0:
@@ -37,9 +36,9 @@ class Database(ABC):
 
         for line in self.data:
             if len(line) != len(self.headers):
-                raise Exception('Data is invalid, check your Database')
+                raise Exception('Data is invalid, check your data')
 
-    def transformCategories(self) -> None:
+    def setCategories(self) -> None:
         for line in self.data:
             for i, item in enumerate(line):
                 if isinstance(item, float):
@@ -52,13 +51,18 @@ class Database(ABC):
                     self.categories[self.headers[i]].append(item)
 
     def parseData(self) -> None:
-        parsedData: list[list[int]] = [[0 for _ in line] for line in self.data]
+        parsedData: list[list[int | float]] = [
+            [parseToNumber(item) for item in line] for line in self.data
+        ]
 
         for lineIndex, line in enumerate(self.data):
-            for i, item in enumerate(line):
-                numberValue = self.categories[self.headers[i]].index(item)
+            for index, item in enumerate(line):
+                if isinstance(item, float):
+                    continue
+                    
+                numberValue = self.categories[self.headers[index]].index(item)
 
-                parsedData[lineIndex][i] = numberValue
+                parsedData[lineIndex][index] = numberValue
 
         self.parsedData = parsedData
 
