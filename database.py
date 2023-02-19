@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from utils import parseIfNumber, parseToNumber
+from parse import parseIfNumber, parseToNumber
 
 class Database(ABC):
     def __init__(self, path: str | Path) -> None:
