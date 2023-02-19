@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
+from utils import parseIfNumber
+
 
 class Database(ABC):
     def __init__(self, path: str | Path) -> None:
@@ -8,8 +10,8 @@ class Database(ABC):
         self.headers: list[str] = []
         self.categories: dict[str, list[str]] = {}
 
-        self.data: list[list[str]] = []
-        self.parsedData: list[list[int]] = []
+        self.data: list[list[str | float]] = []
+        self.parsedData: list[list[int | float]] = []
 
         self.templateMethod()
 
@@ -26,8 +28,8 @@ class Database(ABC):
         self.read()
         self.checkErrors()
 
-        self.setCategories()
-        self.parseData()
+        self.transformCategories()
+        # self.parseData()
 
     def checkErrors(self) -> None:
         if len(self.headers) == 0:
@@ -35,11 +37,14 @@ class Database(ABC):
 
         for line in self.data:
             if len(line) != len(self.headers):
-                raise Exception('Data is invalid')
+                raise Exception('Data is invalid, check your Database')
 
-    def setCategories(self) -> None:
+    def transformCategories(self) -> None:
         for line in self.data:
             for i, item in enumerate(line):
+                if isinstance(item, float):
+                    continue
+
                 if self.headers[i] not in self.categories:
                     self.categories[self.headers[i]] = [item]
 
@@ -64,13 +69,13 @@ class Database(ABC):
 class CSV(Database):
     def read(self):
         with open(self.path, 'r') as file:
-            data = file.readlines()
+            lines = file.readlines()
 
-        for i, line in enumerate(data):
+        for index, line in enumerate(lines):
             values = line.strip().split(',')
 
-            if i == 0:
+            if index == 0:
                 self.headers = values
                 continue
 
-            self.data.append(values)
+            self.data.append([parseIfNumber(value) for value in values])
