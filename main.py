@@ -6,4 +6,5 @@ ROOT_DIR = Path(__file__).parent
 
 db = CSV(ROOT_DIR / 'credit.csv')
 
-NaiveBayes(db, 'risco')
+naiveBayes = NaiveBayes(db, 'risco')
+naiveBayes.predict([[0, 0, 0, 0, 0.9]])

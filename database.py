@@ -54,7 +54,7 @@ class Database(ABC):
                     self.categories[self.headers[i]].append(item)
 
     def parseData(self) -> None:
-        parsedData: list[list[int | float]] = [
+        self.parsedData = [
             [parseToNumber(item) for item in line] for line in self.data
         ]
 
@@ -65,9 +65,7 @@ class Database(ABC):
                     
                 numberValue = self.categories[self.headers[index]].index(item)
 
-                parsedData[lineIndex][index] = numberValue
-
-        self.parsedData = parsedData
+                self.parsedData[lineIndex][index] = numberValue
 
     @abstractmethod
     def read(self): ...
