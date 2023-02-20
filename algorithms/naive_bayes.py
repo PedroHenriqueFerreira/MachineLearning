@@ -25,12 +25,15 @@ class NaiveBayes:
         self.checkErrors()
         self.calculateProbabilities()
 
-    def findAndCount(self, where: dict[int, int]):
+    def findAndCount(self, where: dict[str, str]):
         count = 0
-        for line in self.database.parsedData:
+        for row in self.database.data:
             shouldCount = True
-            for index in where:
-                if line[index] != where[index]:
+            
+            for key in where:
+                keyIndex = self.database.headers.index(key)
+                
+                if row[keyIndex] != where[key]:
                     shouldCount = False
                     break
 
@@ -44,30 +47,27 @@ class NaiveBayes:
             raise Exception('Target not found in database')
 
     def calculateProbabilities(self) -> None:
-        targetIndex = self.database.headers.index(self.target)
-
-        for index, targetString in enumerate(self.database.categories[self.target]):
-            count = self.findAndCount({ targetIndex: index })
-            self.targetProbability[targetString] = count
+        for targetItem in self.database.categories[self.target]:
+            count = self.findAndCount({ self.target: targetItem })
+            self.targetProbability[targetItem] = count
 
         for categorie in self.database.categories:
             if categorie == self.target:
                 continue
             
             self.probabilityTable[categorie] = {}
-            categorieIndex = self.database.headers.index(categorie)
 
-            for categorieValue, categorieString in enumerate(self.database.categories[categorie]):
-                self.probabilityTable[categorie][categorieString] = {}
+            for categorieItem in self.database.categories[categorie]:
+                self.probabilityTable[categorie][categorieItem] = {}
 
-                for targetValue, targetString in enumerate(self.database.categories[self.target]):
+                for targetItem in self.database.categories[self.target]:
                     
                     categorieCount = self.findAndCount({
-                        targetIndex: targetValue,
-                        categorieIndex: categorieValue
+                        self.target: targetItem,
+                        categorie: categorieItem
                     })
 
-                    self.probabilityTable[categorie][categorieString][targetString] = categorieCount
+                    self.probabilityTable[categorie][categorieItem][targetItem] = categorieCount
 
     def predict(self, data: list[list[str | float]]):
         print(self.database)

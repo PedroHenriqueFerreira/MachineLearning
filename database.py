@@ -31,19 +31,19 @@ class Database(ABC):
         self.checkErrors()
 
         self.setCategories()
-        self.parseData()
+        self.setParsedData()
 
     def checkErrors(self) -> None:
         if len(self.headers) == 0:
             raise Exception('Headers is empty')
 
-        for line in self.data:
-            if len(line) != len(self.headers):
+        for row in self.data:
+            if len(row) != len(self.headers):
                 raise Exception('Data is invalid, check your data')
 
     def setCategories(self) -> None:
-        for line in self.data:
-            for i, item in enumerate(line):
+        for row in self.data:
+            for i, item in enumerate(row):
                 if isinstance(item, float):
                     continue
 
@@ -53,19 +53,21 @@ class Database(ABC):
                 if item not in self.categories[self.headers[i]]:
                     self.categories[self.headers[i]].append(item)
 
-    def parseData(self) -> None:
+    def setParsedData(self) -> None:
+        ''' Not required, but it's a good practice to have a parsed data '''
+        
         self.parsedData = [
-            [parseToNumber(item) for item in line] for line in self.data
+            [parseToNumber(item) for item in row] for row in self.data
         ]
 
-        for lineIndex, line in enumerate(self.data):
-            for index, item in enumerate(line):
+        for rowIndex, row in enumerate(self.data):
+            for index, item in enumerate(row):
                 if isinstance(item, float):
                     continue
                     
                 numberValue = self.categories[self.headers[index]].index(item)
 
-                self.parsedData[lineIndex][index] = numberValue
+                self.parsedData[rowIndex][index] = numberValue
 
     @abstractmethod
     def read(self): ...
@@ -74,10 +76,10 @@ class Database(ABC):
 class CSV(Database):
     def read(self):
         with open(self.path, 'r') as file:
-            lines = file.readlines()
+            data = file.readlines()
 
-        for index, line in enumerate(lines):
-            values = line.strip().split(',')
+        for index, row in enumerate(data):
+            values = row.strip().split(',')
 
             if index == 0:
                 self.headers = values
