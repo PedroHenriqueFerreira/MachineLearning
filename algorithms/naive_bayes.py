@@ -6,7 +6,7 @@ class NaiveBayes:
     def __init__(self, database: Database, target: str):
         self.database = database
         self.target = target
-        
+
         self.probabilityTable: dict[str, dict[str, dict[str, int]]] = {}
         self.targetProbability: dict[str, int] = {}
         self.dataLength = len(self.database.data)
@@ -50,12 +50,12 @@ class NaiveBayes:
     def correctCount(self, targetItem: str, count: int) -> int:
         if count != 0:
             return count
-        
+
         self.dataLength += 1
         self.targetProbability[targetItem] += 1
-        
+
         return count + 1
-        
+
     def calculateProbabilities(self) -> None:
         for targetItem in self.database.categories[self.target]:
             count = self.findAndCount({self.target: targetItem})
@@ -76,20 +76,22 @@ class NaiveBayes:
                         self.target: targetItem,
                         categorie: categorieItem
                     })
-                    
+
                     # newCount = self.correctCount(targetItem, count)
 
                     self.probabilityTable[categorie][categorieItem][targetItem] = count
 
     def predict(self, data: list[list[str | float]]):
         results: list[str] = []
-        
+        categoriesList = list(self.database.categories.keys())
+        categorieIndex = categoriesList.index(self.target)
+
         for row in data:
-            probabilities: dict[str, float] = {}
-            
+            probabilitiesIntForm: dict[str, list[list[int]]] = {}
+
             for index, categorie in enumerate(self.database.categories):
-                divisor = None
-                
+                divisor = 1
+
                 if categorie == self.target:
                     targetProbability = self.targetProbability
                     divisor = self.dataLength
@@ -97,24 +99,47 @@ class NaiveBayes:
                     targetProbability = self.probabilityTable[categorie][str(row[index])]
                 
                 for targetItem in targetProbability:
-                    if not divisor:
+                    if categorie != self.target:
                         divisor = self.targetProbability[targetItem]
-                        
-                    fraction = targetProbability[targetItem] / divisor
                     
-                    if targetItem in probabilities:
-                        probabilities[targetItem] *= fraction
+                    fraction = [targetProbability[targetItem], divisor]
+
+                    if targetItem in probabilitiesIntForm:
+                        probabilitiesIntForm[targetItem].append(fraction)
                     else:
-                        probabilities[targetItem] = fraction
+                        probabilitiesIntForm[targetItem] = [fraction]
+            
+            for targetItem in probabilitiesIntForm:
+                add = 0
+                for fraction in probabilitiesIntForm[targetItem]:
+                    if fraction[0] == 0:
+                        fraction[0] = 1
+                        add += 1
+                
+                for _ in range(add):   
+                    for index, fraction in enumerate(probabilitiesIntForm[targetItem]):
+                        fraction[1] += 1
+                        
+                        if (index == categorieIndex):
+                            fraction[0] += 1
+            
+            probabilitiesFloatForm: dict[str, float] = {}
+                     
+            for targetItem in probabilitiesIntForm:
+                for fraction in probabilitiesIntForm[targetItem]:
+                    if targetItem in probabilitiesFloatForm:
+                        probabilitiesFloatForm[targetItem] *= fraction[0] / fraction[1]
+                    else:
+                        probabilitiesFloatForm[targetItem] = fraction[0] / fraction[1]
                         
             maxValue = 0.0
             maxName = ''
-            
-            for probability in probabilities:
-                if probabilities[probability] > maxValue:
-                    maxValue = probabilities[probability]
+
+            for probability in probabilitiesFloatForm:
+                if probabilitiesFloatForm[probability] > maxValue:
+                    maxValue = probabilitiesFloatForm[probability]
                     maxName = probability
-                    
+
             results.append(maxName)
-            
-        return results
+
+        return results 
