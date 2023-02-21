@@ -9,6 +9,7 @@ class NaiveBayes:
         
         self.probabilityTable: dict[str, dict[str, dict[str, int]]] = {}
         self.targetProbability: dict[str, int] = {}
+        self.dataLength = len(self.database.data)
 
         self.templateMethod()
 
@@ -29,10 +30,10 @@ class NaiveBayes:
         count = 0
         for row in self.database.data:
             shouldCount = True
-            
+
             for key in where:
                 keyIndex = self.database.headers.index(key)
-                
+
                 if row[keyIndex] != where[key]:
                     shouldCount = False
                     break
@@ -46,29 +47,74 @@ class NaiveBayes:
         if self.target not in self.database.categories:
             raise Exception('Target not found in database')
 
+    def correctCount(self, targetItem: str, count: int) -> int:
+        if count != 0:
+            return count
+        
+        self.dataLength += 1
+        self.targetProbability[targetItem] += 1
+        
+        return count + 1
+        
     def calculateProbabilities(self) -> None:
         for targetItem in self.database.categories[self.target]:
-            count = self.findAndCount({ self.target: targetItem })
+            count = self.findAndCount({self.target: targetItem})
             self.targetProbability[targetItem] = count
 
         for categorie in self.database.categories:
             if categorie == self.target:
                 continue
-            
+
             self.probabilityTable[categorie] = {}
 
             for categorieItem in self.database.categories[categorie]:
                 self.probabilityTable[categorie][categorieItem] = {}
 
                 for targetItem in self.database.categories[self.target]:
-                    
-                    categorieCount = self.findAndCount({
+
+                    count = self.findAndCount({
                         self.target: targetItem,
                         categorie: categorieItem
                     })
+                    
+                    # newCount = self.correctCount(targetItem, count)
 
-                    self.probabilityTable[categorie][categorieItem][targetItem] = categorieCount
+                    self.probabilityTable[categorie][categorieItem][targetItem] = count
 
     def predict(self, data: list[list[str | float]]):
-        print(self.database)
-        print(self)
+        results: list[str] = []
+        
+        for row in data:
+            probabilities: dict[str, float] = {}
+            
+            for index, categorie in enumerate(self.database.categories):
+                divisor = None
+                
+                if categorie == self.target:
+                    targetProbability = self.targetProbability
+                    divisor = self.dataLength
+                else:
+                    targetProbability = self.probabilityTable[categorie][str(row[index])]
+                
+                for targetItem in targetProbability:
+                    if not divisor:
+                        divisor = self.targetProbability[targetItem]
+                        
+                    fraction = targetProbability[targetItem] / divisor
+                    
+                    if targetItem in probabilities:
+                        probabilities[targetItem] *= fraction
+                    else:
+                        probabilities[targetItem] = fraction
+                        
+            maxValue = 0.0
+            maxName = ''
+            
+            for probability in probabilities:
+                if probabilities[probability] > maxValue:
+                    maxValue = probabilities[probability]
+                    maxName = probability
+                    
+            results.append(maxName)
+            
+        return results

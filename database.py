@@ -14,9 +14,6 @@ class Database(ABC):
 
         self.templateMethod()
 
-    def __len__(self) -> int:
-        return len(self.data)
-
     def __str__(self) -> str:
         className = self.__class__.__name__
         selfDict = self.__dict__
