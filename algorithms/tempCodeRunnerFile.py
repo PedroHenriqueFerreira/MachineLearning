@@ -1,6 +1,4 @@
-from database import Database
-from functools import reduce
-
+from database import Database   
 
 class NaiveBayes:
     def __init__(self, database: Database, target: str):

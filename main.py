@@ -4,12 +4,20 @@ from algorithms.naive_bayes import NaiveBayes
 
 ROOT_DIR = Path(__file__).parent
 
-db = CSV(ROOT_DIR / 'credit.csv')
+# db = CSV(ROOT_DIR / 'credit.csv')
 
-naiveBayes = NaiveBayes(db, 'risco')
+# naiveBayes = NaiveBayes(db, 'risco')
+# prediction = naiveBayes.predict([
+#     ['boa', 'alta', 'nenhuma', 'acima_35'],
+#     ['ruim', 'alta', 'adequada', '0_15']
+# ])
+
+db = CSV(ROOT_DIR / 'teste.csv')
+
+naiveBayes = NaiveBayes(db, 'contratado')
 prediction = naiveBayes.predict([
-    ['boa', 'alta', 'nenhuma', 'acima_35'],
-    ['ruim', 'alta', 'adequada', '0_15']
+    ['não', '18_25', 'sim', 'não']
 ])
+
 
 print(prediction)

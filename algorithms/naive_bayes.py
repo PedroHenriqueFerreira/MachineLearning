@@ -1,6 +1,4 @@
-from database import Database
-from functools import reduce
-
+from database import Database   
 
 class NaiveBayes:
     def __init__(self, database: Database, target: str):
@@ -47,6 +45,15 @@ class NaiveBayes:
         if self.target not in self.database.categories:
             raise Exception('Target not found in database')
 
+    def correctCount(self, targetItem: str, count: int) -> int:
+        if count != 0:
+            return count
+
+        self.dataLength += 1
+        self.targetProbability[targetItem] += 1
+
+        return count + 1
+
     def calculateProbabilities(self) -> None:
         for targetItem in self.database.categories[self.target]:
             count = self.findAndCount({self.target: targetItem})
@@ -67,6 +74,8 @@ class NaiveBayes:
                         self.target: targetItem,
                         categorie: categorieItem
                     })
+
+                    # newCount = self.correctCount(targetItem, count)
 
                     self.probabilityTable[categorie][categorieItem][targetItem] = count
 
@@ -98,28 +107,22 @@ class NaiveBayes:
                     else:
                         probabilitiesIntForm[targetItem] = [fraction]
             
-            globalAdd = 0
-            
             for targetItem in probabilitiesIntForm:
                 add = 0
                 for fraction in probabilitiesIntForm[targetItem]:
                     if fraction[0] == 0:
                         fraction[0] = 1
                         add += 1
-                        globalAdd += 1
                 
                 for _ in range(add):   
                     for index, fraction in enumerate(probabilitiesIntForm[targetItem]):
-                        if (index != categorieIndex):
-                            fraction[1] += 1
-                        else:
+                        fraction[1] += 1
+                        
+                        if (index == categorieIndex):
                             fraction[0] += 1
             
-            for targetItem in probabilitiesIntForm:
-                probabilitiesIntForm[targetItem][categorieIndex][1] += globalAdd
-                
             probabilitiesFloatForm: dict[str, float] = {}
-            
+                     
             for targetItem in probabilitiesIntForm:
                 for fraction in probabilitiesIntForm[targetItem]:
                     if targetItem in probabilitiesFloatForm:
@@ -128,13 +131,13 @@ class NaiveBayes:
                         probabilitiesFloatForm[targetItem] = fraction[0] / fraction[1]
                         
             maxValue = 0.0
-            maxValueName = ''
+            maxName = ''
 
             for probability in probabilitiesFloatForm:
                 if probabilitiesFloatForm[probability] > maxValue:
                     maxValue = probabilitiesFloatForm[probability]
-                    maxValueName = probability
+                    maxName = probability
 
-            results.append(maxValueName)
+            results.append(maxName)
 
         return results 
