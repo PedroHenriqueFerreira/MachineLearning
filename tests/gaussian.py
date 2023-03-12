@@ -1,3 +1,5 @@
+import numpy as np
+
 class GaussianNB:
     def fit(self, X, t):
         self.priors = dict()
@@ -6,6 +8,7 @@ class GaussianNB:
         
         self.classes = np.unique(t)
 
+        # Cada classe
         for c in self.classes:
             X_c = X[t == c]
             self.priors[c] = X_c.shape[0] / X.shape[0]
@@ -27,3 +30,9 @@ class GaussianNB:
             pred = self.classes[np.argmax(posts)]
             preds.append(pred)
         return np.array(preds)
+    
+gNB = GaussianNB()
+X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+t = np.array(['0', '0', '0', '1'])
+gNB.fit(X, t)
+gNB.predict([[1, 0], [0, 1]])

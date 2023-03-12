@@ -1,4 +1,4 @@
-formado,idade,casado,integral,contratado
+formado,idade,estado_civil,busca_emprego_integral,sera_contratado
 sim,18_25,sim,sim,sim
 não,18_25,não,sim,não
 sim,25_30,não,não,sim

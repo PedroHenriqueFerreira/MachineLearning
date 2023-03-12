@@ -1,4 +1,5 @@
-from database import Database   
+from database import Database
+
 
 class NaiveBayes:
     def __init__(self, database: Database, target: str):
@@ -94,42 +95,45 @@ class NaiveBayes:
                     targetProbability = self.targetProbability
                     divisor = self.dataLength
                 else:
-                    targetProbability = self.probabilityTable[categorie][str(row[index])]
-                
+                    targetProbability = self.probabilityTable[categorie][str(
+                        row[index])]
+
                 for targetItem in targetProbability:
                     if categorie != self.target:
                         divisor = self.targetProbability[targetItem]
-                    
+
                     fraction = [targetProbability[targetItem], divisor]
 
                     if targetItem in probabilitiesIntForm:
                         probabilitiesIntForm[targetItem].append(fraction)
                     else:
                         probabilitiesIntForm[targetItem] = [fraction]
-            
+
             for targetItem in probabilitiesIntForm:
                 add = 0
                 for fraction in probabilitiesIntForm[targetItem]:
                     if fraction[0] == 0:
                         fraction[0] = 1
                         add += 1
-                
-                for _ in range(add):   
+
+                for _ in range(add):
                     for index, fraction in enumerate(probabilitiesIntForm[targetItem]):
                         fraction[1] += 1
-                        
+
                         if (index == categorieIndex):
                             fraction[0] += 1
-            
+
             probabilitiesFloatForm: dict[str, float] = {}
-                     
+
             for targetItem in probabilitiesIntForm:
                 for fraction in probabilitiesIntForm[targetItem]:
                     if targetItem in probabilitiesFloatForm:
-                        probabilitiesFloatForm[targetItem] *= fraction[0] / fraction[1]
+                        probabilitiesFloatForm[targetItem] *= fraction[0] / \
+                            fraction[1]
                     else:
-                        probabilitiesFloatForm[targetItem] = fraction[0] / fraction[1]
-                        
+                        probabilitiesFloatForm[targetItem] = fraction[0] / \
+                            fraction[1]
+
             maxValue = 0.0
             maxName = ''
 
@@ -140,4 +144,4 @@ class NaiveBayes:
 
             results.append(maxName)
 
-        return results 
+        return results
