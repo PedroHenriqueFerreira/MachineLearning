@@ -45,36 +45,56 @@ class Layer(Default):
 
         for _ in range(neurons_amount + bias):
             self.neurons.append(Neuron())
-            
-    def initWeights(self, wheight_amount: int):
+
+    def initWeights(self, prev_amount: int):
         if type == 'input':
             return
-        
+
         for neuron in self.neurons[:-1]:
-            neuron.wheights = [1.0 for _ in range(wheight_amount + 1)]
+            neuron.wheights = [1.0 for _ in range(prev_amount + 1)]
+
 
 class NeuralNetwork(Default):
     def __init__(self, input_amount: int, hidden_amounts: list[int], output_amount: int):
         self.input_amount = input_amount
         self.output_amount = output_amount
+        self.hidden_amounts = hidden_amounts
 
-        self.input_layer = Layer(input_amount, 'input')
+        self.input_layer, self.hidden_layers, self.output_layer = self.initLayers()
         
-        self.hidden_layers: list[Layer] = []
-        
-        for i, hidden_amount in enumerate(hidden_amounts):
-            prev_layer_amount = input_amount if i == 0 else hidden_amounts[i - 1]
-            
+        self.draw()
+
+    def initLayers(self):
+        input_layer = Layer(self.input_amount, 'input')
+
+        hidden_layers: list[Layer] = []
+
+        for i, hidden_amount in enumerate(self.hidden_amounts):
+            prev_layer_amount = self.input_amount if i == 0 else self.hidden_amounts[i - 1]
+
             hidden_layer = Layer(hidden_amount, 'hidden')
             hidden_layer.initWeights(prev_layer_amount)
-            
-            self.hidden_layers.append(hidden_layer)
-        
-        self.output_layer = Layer(output_amount, 'output')
-        self.output_layer.initWeights(hidden_amounts[i - 1])
 
-        print(self)
-    
+            hidden_layers.append(hidden_layer)
+
+        output_layer = Layer(self.output_amount, 'output')
+        output_layer.initWeights(self.hidden_amounts[i - 1])
+
+        return [input_layer, hidden_layers, output_layer]
+
+    def draw(self):
+        from tkinter import Tk, Canvas
+        
+        root = Tk()
+        
+        canvas = Canvas(root, background='red', width=800, height=600)
+        canvas.pack()
+        
+        canvas.create_oval(0, 0, 60, 60, width=3)
+        canvas.create_line(0, 0, 100, 100, width=3)
+        
+        root.mainloop()
+
     def relu(self, x: float):
         return max(0, x)
 
