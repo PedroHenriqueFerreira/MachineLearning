@@ -53,9 +53,6 @@ class Layer(Default):
         for neuron in self.neurons[:-1]:
             neuron.wheights = [1.0 for _ in range(wheight_amount + 1)]
 
-class Layers(Default):
-    
-
 class NeuralNetwork(Default):
     def __init__(self, input_amount: int, hidden_amounts: list[int], output_amount: int):
         self.input_amount = input_amount
@@ -73,33 +70,11 @@ class NeuralNetwork(Default):
             
             self.hidden_layers.append(hidden_layer)
         
-        print(self.hidden_layers)
+        self.output_layer = Layer(output_amount, 'output')
+        self.output_layer.initWeights(hidden_amounts[i - 1])
 
-    def create_layers(self):
-        input_layer = []
-
-        for _ in range(self.input_amount):
-            input_layer.append(Neuron())
-
-        hidden_layers = []
-
-        for i, hidden_amount in enumerate(range(self.hidden_amounts)):
-            prev_amount = self.input_amount if i == 0 else self.hidden_amounts[i - 1]
-
-            hidden_layer = []
-
-            for _ in range(hidden_amount):
-                hidden_layer.append(Neuron())
-
-        output_layer = []
-
-        from pprint import pprint
-        pprint(input_layer)
-        pprint(hidden_layers)
-        pprint(output_layer)
-
-        return (input_layer, output_layer, hidden_layers)
-
+        print(self)
+    
     def relu(self, x: float):
         return max(0, x)
 
