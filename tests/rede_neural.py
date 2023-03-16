@@ -40,6 +40,7 @@ class Neuron(Default):
 class Layer(Default):
     def __init__(self, neurons_amount: int, type: str):
         self.neurons: list[Neuron] = []
+        self.type = type
 
         bias = BIAS if type != 'output' else 0
 
@@ -49,22 +50,22 @@ class Layer(Default):
     def initWeights(self, prev_amount: int):
         if type == 'input':
             return
+        
+        neurons = self.neurons if self.type == 'output' else self.neurons[:-1]
 
-        for neuron in self.neurons[:-1]:
+        for neuron in neurons:
             neuron.wheights = [1.0 for _ in range(prev_amount + 1)]
 
 
 class NeuralNetwork(Default):
     def __init__(self, input_amount: int, hidden_amounts: list[int], output_amount: int):
         self.input_amount = input_amount
-        self.output_amount = output_amount
         self.hidden_amounts = hidden_amounts
+        self.output_amount = output_amount
 
         self.input_layer, self.hidden_layers, self.output_layer = self.initLayers()
-        
-        self.draw()
 
-    def initLayers(self):
+    def initLayers(self) -> tuple[Layer, list[Layer], Layer]:
         input_layer = Layer(self.input_amount, 'input')
 
         hidden_layers: list[Layer] = []
@@ -80,23 +81,39 @@ class NeuralNetwork(Default):
         output_layer = Layer(self.output_amount, 'output')
         output_layer.initWeights(self.hidden_amounts[i - 1])
 
-        return [input_layer, hidden_layers, output_layer]
+        return input_layer, hidden_layers, output_layer
 
-    def draw(self):
-        from tkinter import Tk, Canvas
+    def getDNA(self):
+        dna: list[float] = []
         
-        root = Tk()
+        for layer in self.hidden_layers:
+            for neuron in layer.neurons:
+                if neuron.wheights is not None:
+                    dna.extend(neuron.wheights)
+                
+        for neuron in self.output_layer.neurons:
+            if neuron.wheights is not None:
+                dna.extend(neuron.wheights)
         
-        canvas = Canvas(root, background='red', width=800, height=600)
-        canvas.pack()
+        return dna
+    
+    def setDNA(self, dna: list[float]):
+        dnaIndex = 0
         
-        canvas.create_oval(0, 0, 60, 60, width=3)
-        canvas.create_line(0, 0, 100, 100, width=3)
-        
-        root.mainloop()
+        for layer in self.hidden_layers:
+            for neuron in layer.neurons:
+                if neuron.wheights is not None:
+                    for i in range(len(neuron.wheights)):
+                        neuron.wheights[i] = dna[dnaIndex]
+                        dnaIndex += 1
+                
+        for neuron in self.output_layer.neurons:
+            if neuron.wheights is not None:
+                for i in range(len(neuron.wheights)):
+                    neuron.wheights[i] = dna[dnaIndex]
+                    dnaIndex += 1
 
     def relu(self, x: float):
         return max(0, x)
 
-
-NeuralNetwork(2, [3, 3], 2)
+NeuralNetwork(2, [2], 2)
