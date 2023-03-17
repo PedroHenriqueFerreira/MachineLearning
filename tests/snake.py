@@ -1,216 +1,299 @@
-from random import randint
-from tkinter import Tk, Canvas
+from tkinter import Tk, Canvas, Event
+from random import choice
 from typing_extensions import Literal
-from threading import Thread
-from time import sleep
 
+# Types
+Pos = list[int]
 Direction = Literal['up', 'right', 'down', 'left']
 
-class SnakeGame:
-    def __init__(
-        self,
-        canvas: Canvas,
-        arenaSize: int,
-        snakeSpeed: int,
-        wall: list[list[int]] | None = None
-    ):
+# Globals
+CANVAS_SIZE = 800
+GRID_SIZE = 17
+
+PIXEL_SIZE = int(CANVAS_SIZE / GRID_SIZE)
+
+SNAKE_COLORS = ['#3A29A8', '#4430BE']
+BG_COLORS = ['#7ECE6A', '#87D973']
+FOOD_COLOR = '#BE3049'
+MESSAGE_BG_COLOR = '#373737'
+
+SPEED = 100
+
+FONT_CONFIG = ('Minecraft', 50)
+
+# Classes
+class Snake:
+    def __init__(self, canvas: Canvas):
         self.canvas = canvas
-        self.arenaSize = arenaSize
-        self.snakeSpeed = snakeSpeed
-        self.wall = wall
-
-        self.isPaused = True
+        
+        self.coords: list[Pos] = []
+        self.rectangles: list = []
+        
         self.direction: Direction = 'right'
+        self.score = 0
+        self.color_index = 0
         
-        self.elements: list = []
+        self.reset()
 
-        self.body = self.getSnakeInitialPos()
-        self.food = self.getFoodRandomPos()
-
-        self.drawArena()
-        self.drawUpdate()
+    def reset(self):
+        self.canvas.delete('snake')
         
-        for key in ['<Up>', 'w', '<Down>', 's', '<Left>', '<a>', '<Right>', '<d>']:
-            self.canvas.bind(key, self.switchSnakeDirection)
-        self.canvas.focus_set()
+        self.coords.clear()
+        self.rectangles.clear()
         
-    def switchSnakeDirection(self, event):
-        match event.keysym:
-            case 'Up' | 'w':
-                if self.direction == 'down': return
-                self.direction = 'up'
-            case 'Down' | 'd':
-                if self.direction == 'up': return
-                self.direction = 'down'
-            case 'Left' | 's':
-                if self.direction == 'right': return
-                self.direction = 'left'
-            case 'Right' | 'd':
-                if self.direction == 'left': return
-                self.direction = 'right'
+        self.direction = 'right'
+        self.score = 0
+        self.color_index = 0
+        
+        for pos in self.getInitialPos():
+            self.add_coord(pos)
 
-        if self.isPaused:
-            self.body = self.getSnakeInitialPos();
-            self.food = self.getFoodRandomPos();
-            self.isPaused = False;
-            self.move();
+    def create_rectangle(self, pos: Pos):
+        fill = SNAKE_COLORS[self.color_index]
+        
+        self.color_index = 1 if self.color_index == 0 else 0
+        
+        rectangle = self.canvas.create_rectangle(
+            pos[0] * PIXEL_SIZE, 
+            pos[1] * PIXEL_SIZE, 
+            (pos[0] + 1) * PIXEL_SIZE, 
+            (pos[1] + 1) * PIXEL_SIZE, 
+            fill=fill,
+            width=0,
+            tags='snake'
+        )
+        
+        self.rectangles.append(rectangle)
+
+    def add_coord(self, pos: Pos):
+        self.coords.append(pos)
+        
+        self.create_rectangle(pos)
     
-    def drawArena(self):
-        canvasSize = self.canvas.winfo_reqwidth()
-        pixelSize = int(canvasSize / self.arenaSize)
-
-        self.create_rectangle(0, 0, canvasSize, canvasSize, '#87D973')
-
-        for x in range(self.arenaSize):
-            for y in range(self.arenaSize):
-                wallIndex = -1
-
-                if (self.wall is not None and [x, y] in self.wall):
-                    wallIndex = self.wall.index([x, y])
-
-                color = ''
-
-                if wallIndex != -1:
-                    color = '#373737' if self.isEven(wallIndex) else '#3C3C3C'
-                elif (self.isEven(x) and self.isOdd(y)) or (self.isOdd(x) and self.isEven(y)):
-                    color = '#7ECE6A'
-                else:
-                    continue
-
-                self.create_rectangle(x * pixelSize, y * pixelSize, pixelSize, pixelSize, color)
+    def remove_coord(self):
+        self.coords.pop(0)
+        
+        rectangle = self.rectangles.pop(0)
+        self.canvas.delete(rectangle)
     
-    def drawUpdate(self, prevBody: list[list[int]] | None = None, prevFood: list[int] | None = None):
-        canvasSize = self.canvas.winfo_reqwidth()
-        pixelSize = int(canvasSize / self.arenaSize)
+    def getInitialPos(self) -> list[Pos]:
+        x = int(GRID_SIZE / 4)
+        y = int(GRID_SIZE / 2)
         
-        for element in self.elements:
-            self.canvas.delete(element)
-
-        for i, pos in enumerate(self.body):
-            x, y = pos
-            
-            color = '#3A29A8' if self.isEven(i) else '#4430BE'          
-            
-            element = self.create_rectangle(x * pixelSize, y * pixelSize, pixelSize, pixelSize, color)
-            self.elements.append(element)
-
-        if self.food is not None:
-            x, y = self.food
-            
-            element = self.create_rectangle(x * pixelSize, y * pixelSize, pixelSize, pixelSize, '#BE3049')
-            self.elements.append(element)
-
-        if not self.isPaused:
-            return
-
-        element = self.create_rectangle(0, 0, canvasSize, canvasSize, '#373737')        
-        self.elements.append(element)
-
-        isStarting = self.getSnakeInitialPos() == self.body;
-        isFinalizing = len(self.body) == self.arenaSize ** 2
-        
-        text = ''
-        
-        if isStarting:
-            text = 'Jogar Snake'
-        elif isFinalizing:
-            text = 'Parabens'
-        else:
-            text = f'Sua Pontucao: {self.getSnakePonctuation()}'
-        
-        element = self.create_text(int(canvasSize / 2), int(canvasSize / 2), text, '#fff')
-        self.elements.append(element)
-        
-    def create_rectangle(self, x: int, y: int, w: int, h: int, color: str):
-        return self.canvas.create_rectangle(x, y, x + w, y + h, fill=color, width=0)
-
-    def create_text(self, x: int, y: int, text: str, color: str):
-        return self.canvas.create_text(x, y, text=text, fill=color, font=('minecraft', 50), justify='center')
-
-    def move(self):
-        if (self.isPaused): return
-        
-        currentHead = self.body[-1]
-
-        match self.direction:
-            case 'up':
-                self.body.append([currentHead[0], currentHead[1] - 1])
-            case 'down':
-                self.body.append([currentHead[0], currentHead[1] + 1])
-            case 'left':
-                self.body.append([currentHead[0] - 1, currentHead[1]])
-            case 'right':
-                self.body.append([currentHead[0] + 1, currentHead[1]])
-
-        *body, head = self.body
-
-        isBodyColiding = head in body
-        isFoodColiding = head == self.food if self.food is not None else False
-        isWallColiding = head in self.wall if self.wall is not None else False
-        isArenaColiding = -1 in head or self.arenaSize in head
-        isFinalizing = len(self.body) == self.arenaSize ** 2
-
-        if isFoodColiding:
-            self.food = self.getFoodRandomPos()
-        elif isBodyColiding or isWallColiding or isArenaColiding or isFinalizing:
-            self.isPaused = True
-            self.body.pop()
-        else:
-            self.body.pop(0)
-
-        if self.isPaused:
-            return
-        
-        self.drawUpdate()
-
-        Thread(target=self.update).start()
-
-    def update(self):
-        sleep(1 / self.snakeSpeed)    
-        self.move()
-
-    def getAvailableSpots(self):
-        availableSpots: list[list[int]] = []
-
-        for x in range(self.arenaSize):
-            for y in range(self.arenaSize):
-                currentPos: list[int] = [x, y]
-                isInBody = currentPos in self.body
-                isInColiders = currentPos in self.wall if self.wall is not None else False
-
-                if isInBody or isInColiders:
-                    continue
-                availableSpots.append(currentPos)
-
-        return availableSpots
-
-    def getFoodRandomPos(self) -> list[int] | None:
-        availableSpots = self.getAvailableSpots()
-        if len(availableSpots) == 0:
-            return None
-
-        random: int = randint(0, len(availableSpots) - 1)
-        return availableSpots[random]
-
-    def getSnakeInitialPos(self) -> list[list[int]]:
-        x = int(self.arenaSize / 4)
-        y = int(self.arenaSize / 2)
-
         return [[x, y], [x + 1, y], [x + 2, y]]
 
-    def getSnakePonctuation(self):
-        return len(self.body) - len(self.getSnakeInitialPos())
+    def change_direction(self, direction: Direction):
+        match direction:
+            case 'up':
+                if self.direction != 'down':
+                    self.direction = 'up'
+            case 'right':
+                if self.direction != 'left':
+                    self.direction = 'right'
+            case 'down':
+                if self.direction != 'up':
+                    self.direction = 'down'
+            case 'left':
+                if self.direction != 'right':
+                    self.direction = 'left'
 
-    def isEven(self, value: int):
-        return value % 2 == 0
+class Food:
+    def __init__(self, game, canvas: Canvas):
+        self.canvas = canvas
+        self.game = game
+        
+        self.coord = self.move_coord()
+    
+    def move_coord(self):
+        self.canvas.delete('food')
+        
+        coord = self.getRandomPos()
+        
+        if coord is not None:
+            self.create_rectangle(coord)
+        
+        return coord
+    
+    def create_rectangle(self, pos: Pos):
+        self.canvas.create_rectangle(
+            pos[0] * PIXEL_SIZE, 
+            pos[1] * PIXEL_SIZE, 
+            (pos[0] + 1) * PIXEL_SIZE, 
+            (pos[1] + 1) * PIXEL_SIZE, 
+            fill=FOOD_COLOR,
+            width=0,
+            tags='food'
+        )        
+    
+    def getRandomPos(self):
+        availableSpots: list[Pos] = self.game.getAvailableSpots()
+        
+        if len(availableSpots) == 0:
+            return None
+        
+        return choice(availableSpots)
 
-    def isOdd(self, value: int):
-        return value % 2 == 1
+class Game:
+    def __init__(self, win: Tk, canvas: Canvas):
+        self.canvas = canvas
+        
+        self.is_paused = True
+        
+        self.create_bg()
+        
+        self.snake = Snake(canvas)
+        self.food = Food(self, canvas)
+        
+        self.create_message('Jogar Snake')
+        self.listen_keys(win)
+        
+        # self.move()
+    
+    def listen_keys(self, win: Tk):    
+        for key in ['<Up>', '<Right>', '<Down>', '<Left>', 'w', 'd', 's', 'a']:
+            win.bind(key, self.key_event)
+    
+    def get_key_direction(self, key: str) -> Direction:
+        match(key):
+            case 'Up' | 'w':
+                return 'up'
+            case 'Right' | 'd':
+                return 'right'
+            case 'Down' | 's':
+                return 'down'
+            case 'Left' | 'a':
+                return 'left'
+            case _:
+                return 'right'
+    
+    def key_event(self, event: Event):
+        key = event.keysym
+        self.snake.change_direction(self.get_key_direction(key))
+        
+        if self.is_paused: self.start()
+    
+    def start(self):
+        self.is_paused = False
+        
+        self.remove_message()
+        
+        self.move()
+        
+    def game_over(self):
+        self.is_paused = True
+        
+        score = self.snake.score
+        
+        self.snake.reset()
+        
+        self.create_message(f'Pontuacao: {score}')
+    
+    def finished(self):
+        self.is_paused = True
+        
+        self.snake.reset()
+        
+        self.create_message('Parabens!')
+    
+    def move(self):
+        snakePos = self.snake.coords[-1][:]
+        
+        if (self.snake.direction == 'up'):
+            snakePos[1] -= 1
+        elif (self.snake.direction == 'down'):
+            snakePos[1] += 1
+        elif (self.snake.direction == 'left'):
+            snakePos[0] -= 1
+        elif (self.snake.direction == 'right'):
+            snakePos[0] += 1
+        
+        self.snake.add_coord(snakePos)
+        
+        isBodyColiding = snakePos in self.snake.coords[:-1]
+        isWallColiding = -1 in snakePos or GRID_SIZE in snakePos
+        
+        if snakePos == self.food.coord:
+            self.food.coord = self.food.move_coord()
+            self.snake.score += 1
+        elif isBodyColiding or isWallColiding: 
+            return self.game_over()
+        elif len(self.snake.coords) == GRID_SIZE ** 2:
+            return self.finished()
+        else:
+            self.snake.remove_coord()
+            
+        self.canvas.after(SPEED, self.move)
+    
+    def getAvailableSpots(self):
+        availableSpots: list[Pos] = []
 
-root = Tk()
-canvas = Canvas(root, width=800, height=800)
-canvas.pack(expand=1)
+        for x in range(GRID_SIZE):
+            for y in range(GRID_SIZE):
+                pos = [x, y]
+                
+                if pos in self.snake.coords:
+                    continue
+                
+                availableSpots.append(pos)
 
-SnakeGame(canvas, 10, 10, [[0, 0], [0, 1]])
+        return availableSpots
+        
+    def create_bg(self):
+        self.canvas.create_rectangle(0, 0, CANVAS_SIZE, CANVAS_SIZE, fill=BG_COLORS[0], width=0)
+        
+        for x in range(GRID_SIZE):
+            for y in range(GRID_SIZE):
+                if not ((x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0)):
+                    continue
+                
+                self.canvas.create_rectangle(
+                    x * PIXEL_SIZE,
+                    y * PIXEL_SIZE, 
+                    (x + 1) * PIXEL_SIZE,
+                    (y + 1) * PIXEL_SIZE,
+                    fill=BG_COLORS[1], 
+                    width=0
+                )
+    def create_message(self, text: str):
+        self.canvas.create_rectangle(0, 0, CANVAS_SIZE, CANVAS_SIZE, fill=MESSAGE_BG_COLOR, width=0, tags='message')
+        
+        self.canvas.create_text(
+            CANVAS_SIZE / 2,
+            CANVAS_SIZE / 2,
+            text=text,
+            font=FONT_CONFIG,
+            fill='white',
+            tags='message'
+        )
+    
+    def remove_message(self):
+        self.canvas.delete('message')
+        
+class Main:
+    def __init__(self):
+        win = Tk()
+        win.title('Snake Game')
 
-root.mainloop()
+        canvas = Canvas(win, width=CANVAS_SIZE, height=CANVAS_SIZE)
+        canvas.pack(expand=1)
+        
+        self.center_win(win)
+        
+        Game(win, canvas)
+        
+        win.mainloop()
+    
+    def center_win(self, win):
+        win.update()
+        
+        win_width = win.winfo_width()
+        win_height = win.winfo_height()
+        screen_width = win.winfo_screenwidth()
+        screen_height = win.winfo_screenheight()
+        
+        win_x = int((screen_width - win_width) / 2)
+        win_y = int((screen_height - win_height) / 2)
+        
+        win.geometry(f'{win_width}x{win_height}+{win_x}+{win_y}')
+        
+Main()
