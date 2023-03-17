@@ -1,26 +1,6 @@
-from enum import Enum
 from abc import ABC
 
 BIAS = 1
-
-neuron = {
-    "peso": [1.0],
-    "erro": 0.0,
-    "saida": 1.0
-}
-
-camada = {
-    'neurons': [neuron, neuron],
-}
-
-rede_neural = {
-    'camada_entrada': camada,
-    'camada_oculta': [camada, camada],
-    'camada_saida': camada,
-}
-
-# IGNORE THIS ABOVE
-
 
 class Default(ABC):
     def __repr__(self) -> str:
@@ -38,32 +18,40 @@ class Neuron(Default):
 
 
 class Layer(Default):
-    def __init__(self, neurons_amount: int, type: str):
+    def __init__(self, neurons_amount: int, type: str, prev_amount: int | None = None):
         self.neurons: list[Neuron] = []
+        self.neurons_amount = neurons_amount
+        self.prev_amount = prev_amount
         self.type = type
+            
+        self.initNeurons()
+        self.initWeights()
 
-        bias = BIAS if type != 'output' else 0
+    def initNeurons(self):
+        bias = BIAS if self.type != 'output' else 0
 
-        for _ in range(neurons_amount + bias):
+        for _ in range(self.neurons_amount + bias):
             self.neurons.append(Neuron())
 
-    def initWeights(self, prev_amount: int):
-        if type == 'input':
+    def initWeights(self):
+        if self.type == 'input' or self.prev_amount is None:
             return
-        
+
         neurons = self.neurons if self.type == 'output' else self.neurons[:-1]
 
         for neuron in neurons:
-            neuron.wheights = [1.0 for _ in range(prev_amount + 1)]
-
+            neuron.wheights = [1.0 for _ in range(self.prev_amount + 1)]
 
 class NeuralNetwork(Default):
-    def __init__(self, input_amount: int, hidden_amounts: list[int], output_amount: int):
+    def __init__(self, input_amount: int, hidden_amounts: list[int], output_amount: int, activation):
         self.input_amount = input_amount
         self.hidden_amounts = hidden_amounts
         self.output_amount = output_amount
+        self.activation = activation
 
         self.input_layer, self.hidden_layers, self.output_layer = self.initLayers()
+        
+        self.draw()
 
     def initLayers(self) -> tuple[Layer, list[Layer], Layer]:
         input_layer = Layer(self.input_amount, 'input')
@@ -71,49 +59,83 @@ class NeuralNetwork(Default):
         hidden_layers: list[Layer] = []
 
         for i, hidden_amount in enumerate(self.hidden_amounts):
-            prev_layer_amount = self.input_amount if i == 0 else self.hidden_amounts[i - 1]
+            prev_amount = self.input_amount if i == 0 else self.hidden_amounts[i - 1]
+            hidden_layers.append(Layer(hidden_amount, 'hidden', prev_amount))
 
-            hidden_layer = Layer(hidden_amount, 'hidden')
-            hidden_layer.initWeights(prev_layer_amount)
-
-            hidden_layers.append(hidden_layer)
-
-        output_layer = Layer(self.output_amount, 'output')
-        output_layer.initWeights(self.hidden_amounts[i - 1])
+        output_layer = Layer(self.output_amount, 'output', self.hidden_amounts[i - 1])
 
         return input_layer, hidden_layers, output_layer
 
     def getDNA(self):
         dna: list[float] = []
-        
+
         for layer in self.hidden_layers:
             for neuron in layer.neurons:
                 if neuron.wheights is not None:
                     dna.extend(neuron.wheights)
-                
+
         for neuron in self.output_layer.neurons:
             if neuron.wheights is not None:
                 dna.extend(neuron.wheights)
-        
+
         return dna
-    
+
     def setDNA(self, dna: list[float]):
         dnaIndex = 0
-        
+
         for layer in self.hidden_layers:
             for neuron in layer.neurons:
                 if neuron.wheights is not None:
                     for i in range(len(neuron.wheights)):
                         neuron.wheights[i] = dna[dnaIndex]
                         dnaIndex += 1
-                
+
         for neuron in self.output_layer.neurons:
             if neuron.wheights is not None:
                 for i in range(len(neuron.wheights)):
                     neuron.wheights[i] = dna[dnaIndex]
                     dnaIndex += 1
 
-    def relu(self, x: float):
-        return max(0, x)
+    def calculateOutput(self):
+        for idx, hidden_layer in enumerate(self.hidden_layers):
+            prev_layer = self.input_layer if idx == 0 else self.hidden_layers[idx - 1]
+            
+            for neuron in hidden_layer.neurons:
+                if neuron.wheights is None:
+                    continue
+                
+                output = 0.0
+                
+                for i, weight in enumerate(neuron.wheights):
+                    output += weight * prev_layer.neurons[i].output                
+                    
+                neuron.output = self.activation(output)
+        
+        for i, neuron in enumerate(self.output_layer.neurons):
+            if neuron.wheights is None:
+                continue
+            
+            output = 0.0
+            for i, weight in enumerate(neuron.wheights):
+                output += weight * self.hidden_layers[-1].neurons[i].output                
+                
+            neuron.output = self.activation(output)
 
-NeuralNetwork(2, [2], 2)
+        return output
+    
+    def draw(self):
+        from tkinter import Tk, Canvas
+        
+        root = Tk()
+        
+        screen_width = 800
+        screen_height = 800
+        
+        canvas = Canvas(root, width=screen_width, height=screen_height)
+        canvas.pack()
+        
+        canvas.create_rectangle(0, 0, 40, 40, fill='red')
+        
+        root.mainloop()
+
+NeuralNetwork(2, [2], 1, lambda x: max(0, x))
